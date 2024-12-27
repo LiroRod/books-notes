@@ -77,4 +77,28 @@ It turns our human languages are too messy for the rigid grammars those parsers 
 
 ## Static Analysis 2.1.3
 
+The first two stages are pretty similar across all implementations. Now, the individual characteristics of each language start coming into play. At this point, we know the syntactic structure of the code -- things like which expressions are nested in which others - but we don't know much more than that.
 
+In an expression like [a + b], we know we are adding [a] and [b], but we don't know what those names refer to. Are they local variables? Global? Where are they defined?
+
+The first bit of analysis that most languages do is called **binding** or **resolution**. For each **identifier** we find out where that name is defined and wire the two together. This is where **scope** comes into play -- the region of source code where a certain name can be used to refer to a certain declaration.
+
+If the language is statically typed, this is when we type check. Once we know where [a] and [b] are declared, we can also figure out their types. Then if those types don't support being added to each other we report a **type error**.
+
+>> The language we are going to build in this book is dynamically typed, so it will do its type checking later, at runtime.
+
+All this semantic insight that is visible to us from analysis needs to be store somewhere. There are few places we can squirrel it away:
+
+- Often, it gets stored right back as **attributes** on the syntax tree itself -- extra fields in the nodes that aren't initialized during parsing but get filled in later.
+
+- Other times, we may store data in a look-up table off to the side. Typically, the keys to this table are identifiers -- names of variables and declarations. In that case, we call it a **symbol table** and the values it associates with each key tell us what that identifier refers to.
+
+- The most powerful bookkeeping tool is to transform the tree into an entirely new data structure that more directly expresses the semantics of the code. That's the next section.
+
+## Intermediate representations 2.1.4
+
+You can think of the compiler as a pipeline where each stage's job is to organize the data representing the user's code in a way that makes the next stage simpler to implement. The front end of the pipeline is specific to the source language the program is written in. The back end is concerned with the final architecture where the program will run.
+
+In the middle, the code may be stored in some **Intermediate representation** (or **IR**) that isn't tightly tied to either the source or destination forms (hence "Intermediate"). Instead, the IR acts as an interface between there two languages.
+
+This lets you support multiple source languages and target platforms with less effort. Say you want to implement Pascal, C and Fortran compilers and you want to target x86
