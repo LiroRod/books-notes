@@ -101,4 +101,41 @@ You can think of the compiler as a pipeline where each stage's job is to organiz
 
 In the middle, the code may be stored in some **Intermediate representation** (or **IR**) that isn't tightly tied to either the source or destination forms (hence "Intermediate"). Instead, the IR acts as an interface between there two languages.
 
-This lets you support multiple source languages and target platforms with less effort. Say you want to implement Pascal, C and Fortran compilers and you want to target x86
+This lets you support multiple source languages and target platforms with less effort. Say you want to implement Pascal, C and Fortran compilers and you want to target x86, ARM, and, I dunno, SPARC. Normally, that means you're signing up to write *nine* full compilers: Pascal -> x86, C -> ARM, and every other combination.
+
+>> There are a few well-established styles of IRs out there. Hit your search engine of choice and look for "control flow graph", "static single-assignment", "continuation-passing style", and "three-address code".
+
+## Optimization 2.1.5
+
+Once we understand what the user's program means, we are free to swap it out with a different program that has the *same semantics* but implements them more efficiently -- we can **optimize** it.
+
+A simple example is **constant folding**: if some expression always evaluates to the exact same value, we can do the evaluation at compile time and replace the code for the expression with its result. If the user typed in:
+```c
+const pennyArea = 3.14159 * (0.75 / 2) * (0.75 / 2);
+```
+We can do all of that arithmetic in the compiler and change the code to: 
+```c
+const pennyArea = 3.14159 * (0.75 / 2) * (0.75 / 2);
+```
+Optimization is a huge part of the programming language business. Many language hackers spend their entire careers here, squeezing every drop of performance they can out of their compilers to get their benchmarks a fraction of a percent faster. It can become a sort of obsession.
+
+## Code Generation 2.1.6
+
+We have applied all of the optimizations we can think of to the user's program. The last step is converting it to a form the machine can actually run. In other words **generating code**, where "code" here usually refers to the kind of primitive assembly-like instructions a CPU runs and not the kind of "source code" a human might want to read.
+
+If your compiler targets x86 machine code, it's not going to run on an ARM device. To get around that hackers made their compilers produce *virtual* machine code. Instead of instructions for some real chip, they produced code for a hypothetical, idealized machine. *Niklaus Wirth* called this "**p-code**" for "portable", but today, we generally call it **bytecode** because each instruction is often a single byte long.
+
+These synthetic instructions are designed to map a little more closely to the language's semantics, and not be so tied to the peculiarities of any one computer architecture and its accumulated historical cruft. You can think of it like a dense, binary encoding of the language's low-level operations.
+
+## Virtual Machine 2.1.7
+
+If your compiler produces bytecode, your work isn't over once that's done. Since there is no chip that speaks that bytecode, it's your job to translate. Again, you have two options. You can write a little mini-compiler for each target architecture that converts the bytecode to native code for that machine. You still have to do work for each chip you support, but this last stage is pretty simple and you get to reuse the rest of the compiler pipeline across all of the machines you support. You're basically using your bytecode as an intermediate representation.
+
+Or you can write a **Virtual Machine**, a program that emulates a hypothetical chip supporting your virtual architecture at runtime. Running bytecode in a VM is slower than translating it to native code ahead of time because every instruction must be simulated at runtime each time it executes. In return, you get simplicity and portability. Implement your VM in, say, C, and you can run your language on any platform that has a C compiler. This is how the second interpreter we build in this book works.
+
+## Runtime 2.1.8
+
+We have finally hammered the user's program into a form that we can execute. The last step is running it. If we compiled it to machine code, we simply tell the operating system to load the executable and off it goes. If we compiled it to bytecode, we need to start up the VM and load the program into that. 
+
+In both cases, for all but the basest of low-level languages, we usually need some services that our language provides while the program is running. For example, it the language automatically manages memory, we need a [garbage collector] going in order to reclaim unused bits. If our language supports  "instance of" test s so you can see what kind of object you have then we need some representation to keep track of the type of each object during execution.
+
